@@ -1,22 +1,20 @@
 #!/bin/bash
 # Minecraft Server CUI Front-end (prov.)
 # (c) kentay MIT license
-#
-# To-do list
-# prio.   work
-# C    external .ini file. but it is not beautiful
-# C    make setting section (for resuming the script, .ini file is needed.)
-# C    no header logo mode (I like this header)
 
 version=0.1
 
+################################################
+# Default values
+################################################
 server="./minecraft_server.jar" # server file
 verbose=0 # if show latest log under menu, 1.
 sname="minecraft_server" # screen session name
 xmx="1024M" # XMX for JAVA
 xms="1024M" # XMS for JAVA
 java="java" # JAVA command
-
+#################################################
+#################################################
 
 # if .ini file does not exist
 #if [ ! -f "$(basename $0 .sh).ini" ] ; then
@@ -26,19 +24,20 @@ java="java" # JAVA command
 Usage(){
   clear
   Header
-  Separater 76
+  Separater 75
 cat <<EOD
 Minecraft Server CUI Front-end ver.$version
-Usage: $0 [-p server_file_path] [-S session_name] [-v] [-x memory_size] [-s memory_size]
+Usage: $0 [-p server_file_path] [-S session_name] [-v] [-x memory_size] [-s memory_size] [-h]
 
-p: path to server file ($server)
-v: verbose mode. show latest server log under menu
-S: server session name as "screen -S" ($sname)
-j: JAVA command (java)
+p: Path to server file ($server)
+v: Verbose mode. Show latest server log under menu
+S: Server session name as "screen -S" ($sname)
+j: JAVA command ($java)
 x: XMX size for JAVA ($xmx)
 s: XMS size for JAVA ($xms)
+h: Help
 EOD
-Separater 76
+Separater 75
 }
 
 Header(){
@@ -83,13 +82,13 @@ Draw(){
 	echo -ne "    "
   done
   echo ""
-  Separater 76
+  Separater 75
   echo -e "[Server] $server \033[4m$isact\033[m"
   echo "[Session] $sname"
   if [ $verbose -eq 1 ] ; then
     ShowLog
   fi
-  Separater 76
+  Separater 75
   echo -n "$status"
   c=$(( $c + 1 ))
   if [ $c -gt 6 ] ; then # status clear at 6 times Draw function called
