@@ -1,6 +1,6 @@
 #!/bin/bash
 # Minecraft Server CUI Front-end (prov.)
-# (c) ymmtknt MIT license
+# (c) kentay MIT license
 #
 # To-do list
 # prio.   work
