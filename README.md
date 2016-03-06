@@ -1,6 +1,6 @@
 # Minecraft Server CUI Front-end (prov.)
 This is front-end shell script for Minecraft server nogui mode. Name of this script is provisional.  
-![screenshot1](https://github.com/ymmtknt/Minecraft-Server-CUI-Front-end/screenshot1.png)
+![screenshot1](screenshot1.png)
 
 ## Installation  
 1) This script execute `screen` such as `screen -S minecraft_server`. So you have to install `screen` at first. `apt-get install screen` etc.
