@@ -14,17 +14,18 @@ This image is on mac terminal.app with Homebrew profile (Andale Mono font).
 
 ## Usage
 Execute with following options if you need.  
-[-p server_file_path] [-v] [-S session_name] [-j JAVA_command_path] [-x memory_size] [-s memory_size] [-h]
+[-p server_file_path] [-S session_name] [-v] [-n] [-x memory_size] [-s memory_size] [-h]
 
-p: Path to server file.  
-v: Verbose mode. Show latest server log under menu  
+p: Path to server file  
 S: Server session name as `screen -S`  
-j: JAVA command.  
-x: XMX size for JAVA.  
-s: XMS size for JAVA.  
+v: Verbose mode. Show latest server log under menu  
+n: No header log mode  
+j: JAVA command  
+x: XMX size for JAVA  
+s: XMS size for JAVA  
 h: Help
 
-ex.)`mscf.sh -v -p ./minecraft_server.1.9.jar -S minecraft_server`
+ex.) `mscf.sh -v -p ./minecraft_server.1.9.jar -S session_name`
 
 On the front-end, you can lunch/stop the server, send commands to the server. Choose your order from menu using left and right key and enter.
 After quit the front-end, server continues to operate on screen with session name given as `-S` option or default value by the script. You can resume the front-end when you execute the script with the same options. Of course, You can attach the screen by `screen -r` with session name.
@@ -35,9 +36,13 @@ After quit the front-end, server continues to operate on screen with session nam
 |-----|----|
 |C|external .ini file. (but it is not beautiful, isn't it?)|
 |C|setting section. (for resuming the script without any options, .ini file is needed.)|
-|C|no header logo mode. (I like this header...)|
 
 ## Change log
+- ver. 0.1.1  
+**added** no logo mode  
+**change** display clear method  
+**fix** some bugs
+
 - ver. 0.1  
 first published version
 
