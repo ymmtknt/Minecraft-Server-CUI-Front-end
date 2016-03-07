@@ -34,13 +34,19 @@ After quit the front-end, server continues to operate on screen with session nam
 
 |priority|works|
 |-----|----|
-|C|external .ini file. (but it is not beautiful, isn't it?)|
+|B|external .ini file. (but it is not beautiful, isn't it?)|
 |C|setting section. (for resuming the script without any options, .ini file is needed.)|
+|C|add special commands|
+|C|i18n|
+|A|get esc key|
 
 ## Change log
+- ver. 0.1.1 revision 1
+**change** internal processing  
+
 - ver. 0.1.1  
 **added** no logo mode  
-**change** display clear method  
+**change** display clearing method  
 **fix** some bugs
 
 - ver. 0.1  
