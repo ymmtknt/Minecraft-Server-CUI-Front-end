@@ -1,12 +1,17 @@
 #!/bin/bash
 # Minecraft Server CUI Front-end (prov.)
 # (c) kentay MIT license
+version="0.1.2"
 
-version="0.1.1. rev.1"
+################ ATTENTION ################
+# In the case of OSX, bash is too old to execute this script.
+# You have to install bash 4 or later and execute with the bash.
+# e.g.) bash ./mscf.sh -p brabrabra...
+# Or adjust interpreter on the first line of this script to you environment.
+# e.g.) !/bin/bash -> !/usr/local/bin/bash
 
-################################################
-# Default values
-################################################
+############## Default values ##############
+############################################
 server="./minecraft_server.jar" # server file
 verbose=0 # if show latest log under menu, 1.
 nologo=0 # if do not show header log, 1.
@@ -14,8 +19,8 @@ sname="minecraft_server" # screen session name
 xmx="1024M" # XMX for JAVA
 xms="1024M" # XMS for JAVA
 java="java" # JAVA command
-#################################################
-#################################################
+############################################
+############################################
 
 # if .ini file does not exist
 #if [ ! -f "$(basename $0 .sh).ini" ] ; then
@@ -24,8 +29,8 @@ java="java" # JAVA command
 
 # after ini file read
 # get options
-while getopts :vnS:p:x:s:j:h OPT; do
- case $OPT in
+while getopts ":vnS:p:x:s:j:h" OPT; do
+ case "${OPT}" in
    h)
      Usage
      exit 0
@@ -104,6 +109,7 @@ EOD
 }
 
 Draw(){
+  local i
   # refresh display
   local cur=1
   [ $nologo -eq 0 ] && cur=$(Header | wc -l)
@@ -142,7 +148,7 @@ ShowLog(){
 }
 
 Separater(){
-  local fc=1
+  local fc i
   if [ ! $# -eq 0 ] ; then
     [ $1 -lt 1 ] && fc=1 || fc=$1
   fi
@@ -154,12 +160,12 @@ Separater(){
 }
 
 GetArrowKey(){
-  while IFS=$'\n' read -rsn1 -t 1 key; do # wait 1 sec to read key
+  while read -rsn1 -d$'\n' -t1 key; do # wait 1 sec to read key
     case "$key" in
     $'\x1b')
-      read -rsn1 k2 # read command on Mac OSX can't be set millisecond -t option! so suck!!
+      read -rsn1 -t 0.01 k2 # read command on OSX's default bash can't be set millisecond -t option! suck bad!!
       if [[ "${k2}" == "[" ]] ; then
-        read -rsn1 k3
+        read -rsn1 -t 0.01 k3
         key="${key}${k2}${k3}" # concatenate read keys
         break;
       fi
@@ -180,66 +186,110 @@ GetArrowKey(){
   done
 }
 
-StopServer(){
-    screen -p 0 -S $sname -X eval "stuff '/stop
+LaunchServer(){
+  local sc=$(screen -ls | grep -c "${sname}")
+  [ $sc -eq 0 ] && screen -dmS $sname # when screen session $sname is not found, start screen session
+  status="Launching server..."
+  screen -p 0 -S $sname -X eval "stuff '${lcom}
 '"
-    screen -r $sname -X quit
-    status="The server is stopping..."
+}
+
+RestartServer(){
+  local OPTIND w opt
+  while getopts ":w:" opt; do
+    case "${opt}" in
+      w)
+        w=$OPTARG
+      ;;
+    esac
+  done
+  shift $(( $OPTIND - 1))
+  screen -p 0 -S $sname -X eval "stuff '/say server will be restarted.
+  '"
+  StopServer -c -w $w
+  Draw
+  sleep 2
+  LaunchServer
+  Draw
+}
+
+StopServer(){
+  local i
+  local OPTIND w c opt
+  while getopts ":w:c" opt; do
+    case "${opt}" in
+      c)
+        c=1
+      ;;
+      w)
+        w=$OPTARG
+      ;;
+    esac
+  done
+  shift $(( $OPTIND - 1))
+
+  for (( i=0; i < $w ; i++ )) ; do
+    screen -p 0 -S $sname -X eval "stuff '/say server will be stopped after $(( $w - $i )) sec.
+    '"
+    Draw
+    sleep 1
+  done
+
+  screen -p 0 -S $sname -X eval "stuff '/stop
+'"
+  [ $c -lt 1 ] && screen -r $sname -X quit
+  status="Stopping server..."
 }
 
 Execute(){
-  local sc=$(screen -ls | grep -c "${sname}")
-
+  local sc
   case "${col}" in
     0) # launch the server
       local sa=$(ps | grep -c "${lcom}")
-      if [ $sa -gt 1 ] ; then
+      if [ $sa -eq 1 ] ; then # when server is not active
+        LaunchServer
+      elif [ $sa -gt 1 ] ; then
         status="The server is probably already active."
-      elif [ $sa -eq 1 ] ; then # when server is not active
-        [ $sc -eq 0 ] && screen -dmS $sname # when screen session $sname is not found, start screen session
-          status="The server is launching..."
-          screen -p 0 -S $sname -X stuff "${lcom}
-"
       fi
       ;;
     1) # stop the server
-    # To become function?
+      sc=$(screen -ls | grep -c "${sname}")
       if [ $sc -eq 1 ] ; then
-        StopServer
+        StopServer -w 10
       elif [ $sc -eq 0 ] ; then
-        status="No server found."
+        status="Server not found."
       fi
       ;;
     2) # send command to server
+      sc=$(screen -ls | grep -c "${sname}")
       if [ $sc -eq 1 ] ; then
-        status="Send command: "
+        status="Command: "
         Draw
-    		read -a command
-	    	local send=""
+    		read -r command
 		    local flg=0
-        local fc=""
-        # the case only one command was given.
-		    [ ${#command[@]} -eq 1 ] && fc=$command || fc=$command[0]
-			  fc=$(echo "${fc}" | grep -i '[\s\/]\{0,\}stop$') 		# /^[\s\/]\{0,}stop$/i
-		    if [ $fc != "" ] ; then
+		    if [ $(echo "${command}" | grep -c '^[\s\/]\{0,\}stop') -gt 0 ] ; then
 		      # if stop command sent from command session
-		      # status="stop command have to be sent from 'Stop' on the menu"
           # Stop the server and quit the screen session
-          StopServer
+          StopServer -w $(echo "${command}" | ( read -a wt ; echo "${wt[1]}" | grep '^[0-9]\{1,3\}$'))
 		      flg=1
 		    fi
         # yes, contributers could add special commands here, such as "/restart", "/backup", and so on.
+        if [ $(echo "${command}" | grep -c '^[\s\/]\{0,\}restart') -gt 0 ] ; then
+        # like this.
+          RestartServer -w $(echo "${command}" | ( read -a wt ; echo "${wt[1]}" | grep '^[0-9]\{1,3\}$'))
+		      flg=1
+		    fi
         # or to separate these commands from Command section is better than that?
-		    for (( i=0; i<${#command[@]}; i++ )); do
-		      send="${send} ${command[${i}]}"
-		    done
-		    if [ "${send}" != "" -a $flg -eq 0 ] ; then # if command was not null and not special commands.
-    		  screen -p 0 -S $sname -X eval "stuff '${send}
+
+		    if [ "${command}" != "" -a $flg -eq 0 ] ; then # if command was not null and not special commands.
+    		  screen -p 0 -S $sname -X eval "stuff '${command}
 '"
-		      status="sent '${send}' to server"
+		      status="Sent '${command}' to server"
+        else
+          status="${defmsg}"
 		    fi # in the case command was null, then do nothing.
       elif [ $sc -eq 0 ] ; then
-        status="No server found."
+        status="Server not found."
       fi
 	    ;;
 #	3) # connect server
@@ -288,18 +338,18 @@ Main(){
           Draw
           Execute
           ;;
-#        'esc' )
-#  	      key="esc"
-#  	      status="${defmsg}"
-#          Draw
+        'esc' )
+  	      key="wait"
+  	      status="${defmsg}"
+          Draw
 #          Execute
-#          ;;
-#        'space' )
-#          key="wait"
-#          status="${defmsg}"
-#          Draw
+          ;;
+        'space' )
+          key="wait"
+          status="${defmsg}"
+          Draw
 #          Execute
-#          ;;
+          ;;
       esac
     fi
 
