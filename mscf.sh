@@ -1,7 +1,7 @@
 #!/bin/bash
 # Minecraft Server CUI Front-end (prov.)
 # (c) kentay MIT license
-version="0.1.2"
+version="0.1.2 rev.1"
 
 ################ ATTENTION ################
 # In the case of OSX, bash is too old to execute this script.
@@ -60,8 +60,8 @@ while getopts ":vnS:p:x:s:j:h" OPT; do
 done
 
 # global variables
+#menu=("Launch" "Stop" "Command" "Setting" "Quit")
 menu=("Launch" "Stop" "Command" "Quit")
-c=0 # counter how many times Draw was called
 col=0 # selected menu number
 defmsg="Select menu item..." # default status bar message
 status="${defmsg}"
@@ -112,19 +112,19 @@ Draw(){
   local i
   # refresh display
   local cur=1
-  [ $nologo -eq 0 ] && cur=$(Header | wc -l)
+  [[ $nologo -eq 0 ]] && cur=$(Header | wc -l)
   echo -e "\033[${cur};1H"
   echo -en "\033[0J"
   local isact="inactive"
-  [ $(ps | grep -c "${lcom}") -gt 1 ] && isact="active"
+  [[ $(ps | grep -c "${lcom}") -gt 1 ]] && isact="active"
 
   # draw menu items
   # yes, actually beautiful one line if syntaxes. but bad readability...
   for (( i=0; i<${#menu[@]}; i++ )) ; do
-    [ $i -eq $col ] && echo -ne "\033[7m" || echo -n ""
+    [[ $i -eq $col ]] && echo -ne "\033[7m" || echo -n ""
     echo -n "${menu[${i}]}"
-    [ $i -eq $col ] && echo  -ne "\033[m" || echo -n ""
-  	[ $i -lt $(( ${#menu[@]} -1 )) ] && echo -ne "    "
+    [[ $i -eq $col ]] && echo  -ne "\033[m" || echo -n ""
+  	[[ $i -lt $(( ${#menu[@]} -1 )) ]] && echo -ne "    "
   done
 
   echo ""
@@ -135,11 +135,7 @@ Draw(){
   Separater 75
 
   echo -n "${status}"
-  c=$(( $c + 1 ))
-  if [ $c -gt 6 ] ; then # status clear at 6 times Draw function called
-    status="${defmsg}"
-    c=0
-  fi
+
 }
 
 ShowLog(){
@@ -148,10 +144,9 @@ ShowLog(){
 }
 
 Separater(){
-  local fc i
-  if [ ! $# -eq 0 ] ; then
-    [ $1 -lt 1 ] && fc=1 || fc=$1
-  fi
+  local i
+  local fc=0
+  [[ $1 =~ ^[0-9]{1,3}$ ]] && fc=$1
   echo -ne "\033[4m"
   for (( i=0; i<${fc}; i++ )) ; do
     echo -n " "
@@ -159,43 +154,111 @@ Separater(){
   echo -e "\033[m"
 }
 
-GetArrowKey(){
-  while read -rsn1 -d$'\n' -t1 key; do # wait 1 sec to read key
-    case "$key" in
-    $'\x1b')
-      read -rsn1 -t 0.01 k2 # read command on OSX's default bash can't be set millisecond -t option! suck bad!!
-      if [[ "${k2}" == "[" ]] ; then
-        read -rsn1 -t 0.01 k3
-        key="${key}${k2}${k3}" # concatenate read keys
-        break;
-      fi
-      if [[ ! $k2 ]] ; then
-        key="esc"
-        break;
-      fi
-      ;;
-    '') # press Enter key
-      key="enter"
-      break;
-      ;;
-    ' ') # press Space key
-      key="space"
-      break;
-      ;;
+GetCommand(){
+  local c
+  command=""
+  while GetKey 1 ; do
+    case "${key}" in
+      'esc')
+        command=""
+        break
+        ;;
+      'delete' | 'backspace')
+        command=${command/%?/}
+        c=""
+        ;;
+      'space')
+        c=" "
+        ;;
+      'enter')
+        break
+        ;;
+      "left" | "right" | 'up' | 'down')
+        c=""
+        ;;
+      *)
+       c=$key
+        ;;
     esac
+    command="${command}${c}"
+    status="$1${command}"
   done
 }
 
+GetKey(){
+  local OFS=$IFS
+  local t
+  Draw
+  [[ $1 =~ [0-9].{0,1}[0-9]{0,3} ]] && t="-t $1" || t=""
+  while IFS=$'\n' read -rsn1 $t key ; do
+    case "${key}" in
+    $'\x1b')
+      read -rsn1 -t 0.01 k2 # read command on OSX's default bash can't be set millisecond -t option! suck bad!!
+      if [[ $k2 == "[" ]] ; then
+        read -rsn1 -t 0.01 k3
+        case "${k3}" in
+        'A')
+          key="up"
+          ;;
+        'B')
+          key="down"
+          ;;
+        'C')
+          key="left"
+          ;;
+        'D')
+          key="right"
+          ;;
+        *)
+          key="${key}${k2}${k3}" # concatenate read keys
+          ;;
+        esac
+        break
+      elif [[ ! $k2 ]] ; then
+        key="esc"
+        break
+      fi
+      ;;
+    $'\x20') # Space
+      key="space"
+      break
+      ;;
+    $'\x7f') # Delete
+      key="delete"
+      break
+      ;;
+    $'\x08') # Backspace
+      key="backspace"
+      break
+     ;;
+    '') # Enter
+      key="enter"
+      break
+      ;;
+    *)
+      break
+      ;;
+    esac
+  done
+  IFS=$OFS
+}
+
+#Setting(){
+#
+#}
+
 LaunchServer(){
   local sc=$(screen -ls | grep -c "${sname}")
-  [ $sc -eq 0 ] && screen -dmS $sname # when screen session $sname is not found, start screen session
+  [[ $sc -eq 0 ]] && screen -dmS $sname # when screen session $sname is not found, start screen session
   status="Launching server..."
+  Draw
   screen -p 0 -S $sname -X eval "stuff '${lcom}
 '"
 }
 
 RestartServer(){
   local OPTIND w opt
+  w=0
   while getopts ":w:" opt; do
     case "${opt}" in
       w)
@@ -207,15 +270,14 @@ RestartServer(){
   screen -p 0 -S $sname -X eval "stuff '/say server will be restarted.
   '"
   StopServer -c -w $w
-  Draw
   sleep 2
   LaunchServer
-  Draw
 }
 
 StopServer(){
   local i
   local OPTIND w c opt
+  w=0
   while getopts ":w:c" opt; do
     case "${opt}" in
       c)
@@ -228,6 +290,8 @@ StopServer(){
   done
   shift $(( $OPTIND - 1))
 
+  status="Stopping server..."
+  Draw
   for (( i=0; i < $w ; i++ )) ; do
     screen -p 0 -S $sname -X eval "stuff '/say server will be stopped after $(( $w - $i )) sec.
     '"
@@ -237,8 +301,7 @@ StopServer(){
 
   screen -p 0 -S $sname -X eval "stuff '/stop
 '"
-  [ $c -lt 1 ] && screen -r $sname -X quit
-  status="Stopping server..."
+  [[ $c -lt 1 ]] && screen -r $sname -X quit
 }
 
 Execute(){
@@ -246,49 +309,69 @@ Execute(){
   case "${col}" in
     0) # launch the server
       local sa=$(ps | grep -c "${lcom}")
-      if [ $sa -eq 1 ] ; then # when server is not active
+      if [[ $sa -eq 1 ]] ; then # when server is not active
         LaunchServer
-      elif [ $sa -gt 1 ] ; then
+      elif [[ $sa -gt 1 ]] ; then
         status="The server is probably already active."
       fi
       ;;
     1) # stop the server
       sc=$(screen -ls | grep -c "${sname}")
-      if [ $sc -eq 1 ] ; then
+      if [[ $sc -eq 1 ]] ; then
         StopServer -w 10
-      elif [ $sc -eq 0 ] ; then
+      elif [[ $sc -eq 0 ]] ; then
         status="Server not found."
       fi
       ;;
     2) # send command to server
       sc=$(screen -ls | grep -c "${sname}")
-      if [ $sc -eq 1 ] ; then
-        status="Command: "
-        Draw
-    		read -r command
+      if [[ $sc -eq 1 ]] ; then
+        local comwait="Command:"
 		    local flg=0
-		    if [ $(echo "${command}" | grep -c '^[\s\/]\{0,\}stop') -gt 0 ] ; then
-		      # if stop command sent from command session
-          # Stop the server and quit the screen session
-          StopServer -w $(echo "${command}" | ( read -a wt ; echo "${wt[1]}" | grep '^[0-9]\{1,3\}$'))
-		      flg=1
-		    fi
-        # yes, contributers could add special commands here, such as "/restart", "/backup", and so on.
-        if [ $(echo "${command}" | grep -c '^[\s\/]\{0,\}restart') -gt 0 ] ; then
-        # like this.
-          RestartServer -w $(echo "${command}" | ( read -a wt ; echo "${wt[1]}" | grep '^[0-9]\{1,3\}$'))
-		      flg=1
-		    fi
-        # or to separate these commands from Command section is better than that?
+        command=""
+        status="${comwait}"
+        Draw
+        while GetCommand "${comwait}"; do
+          flg=0
+          case "${key}" in
+            'esc')
+              status="${defmsg}"
+              break
+              ;;
+            'left' | 'right' | 'up' | 'down' )
+              ;;
+            *)
 
-		    if [ "${command}" != "" -a $flg -eq 0 ] ; then # if command was not null and not special commands.
-    		  screen -p 0 -S $sname -X eval "stuff '${command}
+              ############ extended command sample ############
+    		      if [[ $command =~ ^[\　/]{0,}[Ss][Tt][Oo][Pp][\　]{0,} ]] ; then
+		          # if stop command sent from command session
+              # Stop the server and quit the screen session
+                StopServer -w $(echo "${command}" | cut -d " " -f 2 -s | grep '^[0-9]\{1,3\}$')
+                break
+    		      fi
+
+              # yes, contributers could add special commands here, such as "/restart", "/backup", and so on.
+              if [[ $command =~ ^[\　/]{0,}[Rr][Ee][Ss][Tt][Aa][Rr][Tt][\　]{0,} ]] ; then
+              # like this.
+                RestartServer -w $(echo "${command}" | cut -d " " -f 2 -s | grep '^[0-9]\{1,3\}$')
+		            flg=1
+		          fi
+              # or to separate these commands from Command section is better than that?
+              #################################################
+
+	  	        if [[ $command != "" && $flg -eq 0 ]] ; then # if command was not null and not special commands.
+      		      screen -p 0 -S $sname -X eval "stuff '${command}
 '"
-		      status="Sent '${command}' to server"
-        else
-          status="${defmsg}"
-		    fi # in the case command was null, then do nothing.
-      elif [ $sc -eq 0 ] ; then
+		          fi # in the case command was null, then do nothing.
+              command="" # command reset
+              sleep 0.1
+              status="${comwait}"
+              ;;
+          esac
+
+        done
+
+      elif [[ $sc -eq 0 ]] ; then
         status="Server not found."
       fi
 	    ;;
@@ -299,7 +382,7 @@ Execute(){
 #	    status="No server found."
 #	  fi
 #	  ;;
-    3) # quit menu
+    *) # quit menu
       echo ""
       exit 0
       ;;
@@ -307,70 +390,67 @@ esac
 }
 
 Main(){
+  local c=0
   while true; do
-    Draw
-
-    if GetArrowKey; then
+    if GetKey 1 ; then
       case "${key}" in
-        $'\x1b[D' ) # press right
+        'right' ) # press right
           col=$(( $col - 1))
-          [ $col -lt 0 ] && col=0
+          [[ $col -lt 0 ]] && col=0
 	        key="wait"
 	        status="${defmsg}"
-          Draw
           ;;
-        $'\x1b[C' ) # press left
+        'left' ) # press left
           col=$(( $col + 1))
-          [ $col -gt $(( ${#menu[@]} - 1)) ] && col=$(( ${#menu[@]} - 1))
+          [[ $col -gt $(( ${#menu[@]} - 1)) ]] && col=$(( ${#menu[@]} - 1))
 	        key="wait"
 	        status="${defmsg}"
-          Draw
           ;;
-#    $'\x1b[A' )
+#    'up' )
     # press up
 #    ;;
-#    $'\x1b[B' )
+#    'down' )
     # press down
 #    ;;
         'enter' )
 	        key="wait"
 	        status="${defmsg}"
-          Draw
           Execute
+          Draw
           ;;
         'esc' )
   	      key="wait"
   	      status="${defmsg}"
-          Draw
-#          Execute
           ;;
         'space' )
           key="wait"
           status="${defmsg}"
-          Draw
-#          Execute
           ;;
+          *)
       esac
     fi
-
+    if [[ $(( $c + 1 )) -gt 3 ]] ; then # status clear at 3 times Draw function called
+      status="${defmsg}"
+      c=0
+    else
+      c=$(( $c + 1 ))
+    fi
   done
 }
 
 Initialize(){
-  clear
 
   cd $dir
   lcom="${java} -Xmx${xmx} -Xms${xms} -jar ./${file} nogui"
-# echo $server
-  if [ ! -f "${file}" ] ; then
+
+  if [[ ! -f $file ]] ; then
     echo "Server file does not exist."
     exit 1
   fi
 
-
-
-  [ $nologo -eq 0 ] && Header || echo "Minecraft server"
-
+  clear
+  [[ $nologo -eq 0 ]] && Header || echo "Minecraft server"
+  Draw
 }
 
 Initialize
