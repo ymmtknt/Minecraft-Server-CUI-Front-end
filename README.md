@@ -47,6 +47,10 @@ After quit the front-end, server continues to operate on screen with session nam
 |C|i18n|
 
 ## Change log
+- ver. 0.1.2 revision 2  
+**change** internal processing  
+**fix** some bugs
+
 - ver. 0.1.2 revision 1  
 **change** internal processing  
 **fix** some bugs

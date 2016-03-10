@@ -1,7 +1,7 @@
 #!/bin/bash
 # Minecraft Server CUI Front-end (prov.)
 # (c) kentay MIT license
-version="0.1.2 rev.1"
+version="0.1.2 rev.2"
 
 ################ ATTENTION ################
 # In the case of OSX, bash is too old to execute this script.
@@ -134,7 +134,7 @@ Draw(){
   [ $verbose -eq 1 ] && ShowLog
   Separater 75
 
-  echo -n "${status}"
+  echo -ne "${status}"
 
 }
 
@@ -155,33 +155,57 @@ Separater(){
 }
 
 GetCommand(){
-  local c
-  command=""
+  local c cur=$(( ${#1} )) cc cp
+  command="" #command cancel
+
   while GetKey 1 ; do
     case "${key}" in
       'esc')
         command=""
         break
         ;;
-      'delete' | 'backspace')
-        command=${command/%?/}
+      'delete' | 'backspace') # separate "delete" and "backspace"? On OSX, there isn't "backspace" and "delete" is functioning as "backspace"
+        cur=$(( $cur - 1 ))
+        [[ $cur -lt $(( ${#1} )) ]] && cur=$(( ${#1} ))
         c=""
-        ;;
-      'space')
-        c=" "
+        cc=$(( $cur - ${#1} ))
+        command=$( echo "${command}" | sed -e "s/^\(.\{$cc\}\).\(.\{0,\}\)$/\1\2/g" )
         ;;
       'enter')
         break
         ;;
-      "left" | "right" | 'up' | 'down')
+      'left')
+        c=""
+        cur=$(( $cur - 1 ))
+        [[ $cur -lt $(( ${#1} )) ]] && cur=$(( ${#1} ))
+        ;;
+      'right')
+        c=""
+        cur=$(( $cur + 1 ))
+        [[ $cur -ge $(( ${#1} + ${#command} + 1 )) ]] && cur=$(( ${#1} + ${#command} + 1 ))
+        ;;
+       'up' | 'down')   # add readline function?
+        c=""
+        ;;
+      '')
         c=""
         ;;
       *)
-       c=$key
+        c=$key
+        cur=$(( $cur + 1 ))
+        if [[ $cur -ge $(( ${#1} + ${#command} )) ]] ; then # if cursor is on the end of the string
+          command="${command}${c}"
+        else
+          cc=$(( $cur - ${#1} - 1 ))
+          command=$( echo "${command}" | sed -e "s/^\(.\{$cc\}\)\(.\{0,\}\)$/\1$c\2/g" )
+        fi
         ;;
     esac
-    command="${command}${c}"
-    status="$1${command}"
+
+    # moving cursor position
+    [[ $cur -lt $(( ${#1} + ${#command} )) ]] && cp="\x1b[$(( ${#1} + ${#command} - $cur ))D" || cp=""
+
+    [[ $c != "" || $key == "left" || $key == "right" || $key == "delete" || $key == "backspace" ]] && status="${1}${command}${cp}"
   done
 }
 
@@ -204,10 +228,10 @@ GetKey(){
           key="down"
           ;;
         'C')
-          key="left"
+          key="right"
           ;;
         'D')
-          key="right"
+          key="left"
           ;;
         *)
           key="${key}${k2}${k3}" # concatenate read keys
@@ -220,7 +244,7 @@ GetKey(){
       fi
       ;;
     $'\x20') # Space
-      key="space"
+      key=" "
       break
       ;;
     $'\x7f') # Delete
@@ -328,7 +352,7 @@ Execute(){
       if [[ $sc -eq 1 ]] ; then
         local comwait="Command:"
 		    local flg=0
-        command=""
+        local command=""
         status="${comwait}"
         Draw
         while GetCommand "${comwait}"; do
@@ -363,7 +387,6 @@ Execute(){
       		      screen -p 0 -S $sname -X eval "stuff '${command}
 '"
 		          fi # in the case command was null, then do nothing.
-              command="" # command reset
               sleep 0.1
               status="${comwait}"
               ;;
@@ -394,13 +417,13 @@ Main(){
   while true; do
     if GetKey 1 ; then
       case "${key}" in
-        'right' ) # press right
+        'left' ) # press right
           col=$(( $col - 1))
           [[ $col -lt 0 ]] && col=0
 	        key="wait"
 	        status="${defmsg}"
           ;;
-        'left' ) # press left
+        'right' ) # press left
           col=$(( $col + 1))
           [[ $col -gt $(( ${#menu[@]} - 1)) ]] && col=$(( ${#menu[@]} - 1))
 	        key="wait"
@@ -422,7 +445,7 @@ Main(){
   	      key="wait"
   	      status="${defmsg}"
           ;;
-        'space' )
+        ' ' )
           key="wait"
           status="${defmsg}"
           ;;
