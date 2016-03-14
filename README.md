@@ -50,8 +50,8 @@ After quit the front-end, server continues to operate on screen with session nam
 - ver 0.1.3  
 **adding** "Setting" section  
 **adding** reading/writing .ini file  
-**adding ** `-i` option to specify the .ini file  
-Values in the file are overwitten with those specified at options.  
+**adding** `-i` option to specify the .ini file  
+Values in the file are overwitten with those specified at options. When the option isn't set, the file is generated in the same directory server file is put.  
 **change** internal processing  
 **fix** some bugs
 
