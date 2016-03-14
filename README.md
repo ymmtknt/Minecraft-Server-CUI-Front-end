@@ -21,7 +21,7 @@ e.g.) `#!/bin/bash -> #!/usr/local/bin/bash`
 
 ## Usage
 Execute with following options if you need.  
-[-p server_file_path] [-S session_name] [-v] [-n] [-x memory_size] [-s memory_size] [-h]
+[-p server_file_path] [-S session_name] [-v] [-n] [-x memory_size] [-s memory_size] [-i ini_file_path] [-h]
 
 p: Path to server file  
 S: Server session name as `screen -S`  
@@ -30,6 +30,7 @@ n: No header log mode
 j: JAVA command  
 x: XMX size for JAVA  
 s: XMS size for JAVA  
+i: Path to ini file  
 h: Help
 
 e.g.) `./mscf.sh -v -p ./minecraft_server.1.9.jar -S session_name`
@@ -41,12 +42,19 @@ After quit the front-end, server continues to operate on screen with session nam
 
 |priority|works|
 |-----|----|
-|B|external .ini file. (but it is not beautiful, isn't it?)|
-|C|setting section. (for resuming the script without any options, .ini file is needed.)|
 |C|add expanded commands|
 |C|i18n|
+|B|Readline function in "Setting"|
 
 ## Change log
+- ver 0.1.3  
+**adding** "Setting" section  
+**adding** reading/writing .ini file  
+**adding ** `-i` option to specify the .ini file  
+Values in the file are overwitten with those specified at options.  
+**change** internal processing  
+**fix** some bugs
+
 - ver. 0.1.2 revision 2  
 **change** internal processing  
 **fix** some bugs
@@ -57,7 +65,7 @@ After quit the front-end, server continues to operate on screen with session nam
 
 - ver. 0.1.2  
 **adding** expanded command `restart`  
-and you can give first argument ([0-9]{1,3}) to `stop`/`restart` as waiting time for stop/restart server.  
+You can give first argument ([0-9]{1,3}) to `stop`/`restart` as waiting time for stop/restart server.  
 e.g.) In command section, if you input `stop 10` then server will be stopped after 10 seconds.  
 **change** internal processing  
 **fix** some bugs
