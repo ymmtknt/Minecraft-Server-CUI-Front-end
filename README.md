@@ -44,7 +44,7 @@ After quit the front-end, server continues to operate on screen with session nam
 |-----|----|
 |C|add expanded commands|
 |C|i18n|
-|B|Readline function in "Setting"|
+|B|Readline function in "Command"|
 
 ## Change log
 - ver 0.1.3  
